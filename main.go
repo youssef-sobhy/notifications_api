@@ -18,11 +18,11 @@ func main() {
 			return
 		}
 
-		ids, err := internal.CreateNotifications(body.Data)
+		notifications, err := internal.CreateNotifications(body.Data)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
-		c.JSON(200, ids)
+		c.JSON(200, notifications)
 	})
 
 	r.GET("api/v1/notifications/:external_id", func(c *gin.Context) {
