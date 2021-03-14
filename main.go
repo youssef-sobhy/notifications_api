@@ -25,8 +25,10 @@ func main() {
 		c.JSON(200, ids)
 	})
 
-	r.GET("api/v1/notifications", func(c *gin.Context) {
-		notifications, err := internal.FetchNotifications()
+	r.GET("api/v1/notifications/:external_id", func(c *gin.Context) {
+		var user internal.UserQueryParams
+		c.ShouldBindUri(&user)
+		notifications, err := internal.FetchNotifications(user.ExternalID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

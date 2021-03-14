@@ -22,11 +22,11 @@ func connectToDb() (context.Context, *mongo.Client) {
 	return ctx, client
 }
 
-func FetchNotifications() ([]primitive.M, error) {
+func FetchNotifications(externalID int) ([]primitive.M, error) {
 	ctx, client := connectToDb()
 	database := client.Database("notifications_db")
 	notificationsCollection := database.Collection("notifications")
-	cursor, err := notificationsCollection.Find(ctx, bson.M{})
+	cursor, err := notificationsCollection.Find(ctx, bson.M{"external_id": externalID})
 	defer client.Disconnect(ctx)
 	if err != nil {
 		return nil, err
@@ -49,6 +49,7 @@ func CreateNotifications(data []NotificationParams) ([]primitive.M, error) {
 			obj.Notification.CreatedAt = time.Now()
 			obj.Notification.UserID = user.ID
 			obj.Notification.Platform = user.Platform
+			obj.Notification.ExternalID = user.ExternalID
 			normalized_data = append(normalized_data, obj.Notification)
 		}
 		Publish(obj.Notification, obj.Users)

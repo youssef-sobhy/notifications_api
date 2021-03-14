@@ -19,11 +19,11 @@ var (
 		MaxIdle:   5,
 		Wait:      true,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", ":6379")
+			return redis.Dial("tcp", "redis:6379/0")
 		},
 	}
 	rdb = redisv8.NewClient(&redisv8.Options{
-		Addr:     "redis:6379",
+		Addr:     "redis:6379/0",
 		Password: "",
 		DB:       0,
 	})
