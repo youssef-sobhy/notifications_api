@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/youssef1337/notifications_api/tree/main/internal"
+	"github.com/youssef1337/notifications_api/internal"
 )
 
 func main() {

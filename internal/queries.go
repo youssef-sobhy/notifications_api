@@ -6,30 +6,28 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	ctx, database = connectToDb()
-)
-
-func connectToDb() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://notifications_mongo/"))
+func connectToDb() (context.Context, *mongo.Client) {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017/?connect=direct"))
 	if err != nil {
 		// Report to rollbar or another logging service.
 		fmt.Println(err.Error())
 	}
-	defer client.Disconnect(ctx)
 
-	return ctx, client.Database("notifications_db")
+	return ctx, client
 }
 
-func FetchNotifications() ([]Notification, err) {
+func FetchNotifications() ([]primitive.M, error) {
+	ctx, client := connectToDb()
+	database := client.Database("notifications_db")
 	notificationsCollection := database.Collection("notifications")
 	cursor, err := notificationsCollection.Find(ctx, bson.M{})
+	defer client.Disconnect(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +38,10 @@ func FetchNotifications() ([]Notification, err) {
 	return notifications, nil
 }
 
-func CreateNotifications(data []NotificationParams) ([]string, error) {
+func CreateNotifications(data []NotificationParams) ([]primitive.M, error) {
+	ctx, client := connectToDb()
+	database := client.Database("notifications_db")
+	notificationsCollection := database.Collection("notifications")
 	var normalized_data []interface{}
 
 	for _, obj := range data {
@@ -54,8 +55,18 @@ func CreateNotifications(data []NotificationParams) ([]string, error) {
 	}
 
 	res, err := notificationsCollection.InsertMany(ctx, normalized_data)
+	defer client.Disconnect(ctx)
 	if err != nil {
-		return res.InsertedIDs, nil
+		return nil, err
 	}
-	return nil, err
+	var notifications []bson.M
+	query := bson.M{"_id": bson.M{"$in": res.InsertedIDs}}
+	cursor, err := notificationsCollection.Find(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(ctx, &notifications); err != nil {
+		return nil, err
+	}
+	return notifications, nil
 }
